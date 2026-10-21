@@ -3,6 +3,7 @@
 > Production-ready SaaS admin template built with React 19, TypeScript 6, Vite 8, and Ant Design v6.
 
 [![Live Demo](https://img.shields.io/badge/demo-live-brightgreen)](https://react-admin-dashboard-gamma-six.vercel.app/)
+[![AWS Deployment](https://img.shields.io/badge/AWS-CloudFront-orange)](https://d2yadwuv5d4euk.cloudfront.net/)
 [![React](https://img.shields.io/badge/React-19.2-blue)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-6.0-blue)](https://www.typescriptlang.org/)
 [![Vite](https://img.shields.io/badge/Vite-8.1-purple)](https://vite.dev/)
@@ -199,6 +200,99 @@ Output lives in `dist/`. Any static host works:
 - [Vercel](https://vercel.com/) – zero-config for Vite
 - [Netlify](https://www.netlify.com/) – continuous deployments
 - [GitHub Pages](https://pages.github.com/) – static hosting
+
+- ## DevOps Implementation — Jenkins, Terraform & AWS
+
+This project extends the React Admin Dashboard with a DevOps workflow for infrastructure provisioning, continuous integration, and AWS deployment.
+
+### Live AWS Deployment
+
+**Website:** https://d2yadwuv5d4euk.cloudfront.net/
+
+**GitHub Repository:** https://github.com/vanshika-exiliensoft/react-admin-dashboard-devops
+
+### Technology Stack
+
+| Technology | Purpose |
+|---|---|
+| GitHub | Source code management and version control |
+| Jenkins | CI/CD pipeline automation |
+| Terraform | Infrastructure as Code (IaC) |
+| AWS S3 | Stores the production React build |
+| AWS CloudFront | Distributes the website over HTTPS |
+| AWS IAM | Controls access to AWS resources |
+| Node.js and npm | Installs dependencies and builds the application |
+
+### Deployment Architecture
+
+```text
+Developer
+    |
+    v
+GitHub Repository
+    |
+    v
+Jenkins Pipeline
+    |
+    +--> Checkout Source Code
+    +--> Install Dependencies
+    +--> Run ESLint
+    +--> Build React Application
+    +--> Verify AWS Credentials
+    |
+    v
+Amazon S3
+    |
+    v
+Amazon CloudFront
+    |
+    v
+Live React Dashboard over HTTPS
+```
+
+Terraform manages the AWS infrastructure separately from the frontend build pipeline.
+
+### Jenkins Pipeline
+
+The `Jenkinsfile` defines the following stages:
+
+1. **Checkout Code:** Retrieves the project source code from GitHub.
+2. **Check Tools:** Verifies the availability of Node.js, npm, Git, and AWS CLI.
+3. **Install Dependencies:** Installs dependencies using `npm ci`.
+4. **Lint:** Runs ESLint to check code quality.
+5. **Build React App:** Creates the production build in the `dist/` directory.
+6. **Verify AWS Credentials:** Confirms AWS authentication using Jenkins-managed credentials.
+7. **Deploy to S3:** Uploads the production build to the configured S3 bucket.
+8. **Invalidate CloudFront Cache:** Requests an invalidation so updated website content can be served.
+
+The deployment stages require valid credentials, appropriate IAM permissions, and an enabled CloudFront distribution.
+
+### Terraform Infrastructure
+
+Terraform configuration is maintained in `src/infrastructure/`.
+
+- `main.tf` — defines the S3 bucket, public access block, CloudFront distribution, Origin Access Control, and bucket policy.
+- `variables.tf` — declares configurable infrastructure variables.
+- `terraform.tfvars` — contains local variable values and must not be committed.
+- `outputs.tf` — exposes useful deployment outputs such as the S3 bucket name, CloudFront distribution ID, and website URL.
+- `.terraform.lock.hcl` — records provider selections for consistent Terraform initialization.
+
+The S3 bucket remains private, and CloudFront uses Origin Access Control to read the website objects.
+
+### Security Practices
+
+- Keep S3 public access blocked.
+- Store AWS credentials in Jenkins Credentials Manager.
+- Use appropriate IAM permissions for infrastructure management and deployment.
+- Do not commit AWS access keys, personal access tokens, Terraform state files, or sensitive variable files.
+- Review Terraform plans before applying infrastructure changes.
+- Monitor AWS resource usage and costs.
+
+### Validation
+
+The Jenkins pipeline has successfully installed dependencies, run lint checks, built the React application, and verified AWS credentials. The AWS-hosted website has also been accessed successfully through CloudFront.
+
+Automatic triggering and deployment should be considered verified only after testing the complete workflow following a GitHub push.
 
 ---
 
