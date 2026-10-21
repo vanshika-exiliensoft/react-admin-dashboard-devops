@@ -8,13 +8,7 @@ pipeline {
         skipDefaultCheckout(true)
     }
 
-    parameters {
-        booleanParam(
-            name: 'DEPLOY_TO_AWS',
-            defaultValue: false,
-            description: 'Enable only when CloudFront is enabled and deployed.'
-        )
-    }
+    
 
     environment {
         AWS_DEFAULT_REGION = 'ap-south-1'
@@ -69,9 +63,8 @@ pipeline {
         }
 
         stage('Deploy to S3') {
-            when {
-                expression { params.DEPLOY_TO_AWS == true }
-            }
+            
+            
             steps {
                 withCredentials([[
                     $class: 'AmazonWebServicesCredentialsBinding',
@@ -83,9 +76,7 @@ pipeline {
         }
 
         stage('Invalidate CloudFront Cache') {
-            when {
-                expression { params.DEPLOY_TO_AWS == true }
-            }
+            
             steps {
                 withCredentials([[
                     $class: 'AmazonWebServicesCredentialsBinding',
