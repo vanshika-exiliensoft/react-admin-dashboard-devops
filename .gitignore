@@ -22,3 +22,15 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# React dependencies and build output
+node_modules/
+dist/
+
+# Terraform local files and secrets
+/src/infrastructure/.terraform/
+/src/infrastructure/terraform.tfstate
+/src/infrastructure/terraform.tfstate.*
+/src/infrastructure/terraform.tfvars
+/src/infrastructure/*.tfvars
+/src/infrastructure/*.tfplan
