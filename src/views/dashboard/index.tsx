@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ArrowUpOutlined, FireOutlined, ReloadOutlined, TeamOutlined } from '@ant-design/icons'
 import { Alert, Button, Card, Col, Empty, List, Row, Skeleton, Space, Statistic, Tag, Typography, theme } from 'antd'
-import type { DashboardStats } from '../../utils/mockData'
-import { getDashboardStats } from '../../utils/mockData'
+import type { DashboardStats } from '../../utils/mockData';
+import { getLambdaDashboardStats } from '../../utils/lambdaDashboard';
 import { CustomerStatus } from '../customers/types'
 
 const statusLabelMap: Record<CustomerStatus, string> = {
@@ -124,7 +124,7 @@ const DashboardPage = () => {
     setLoading(true)
     setError(undefined)
     try {
-      const nextStats = await getDashboardStats()
+      const nextStats = await getLambdaDashboardStats()
       setStats(nextStats)
     } catch (loadError) {
       console.error(loadError)
