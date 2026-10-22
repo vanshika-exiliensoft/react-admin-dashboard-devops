@@ -203,6 +203,45 @@ Output lives in `dist/`. Any static host works:
 
 - ## DevOps Implementation — Jenkins, Terraform & AWS
 
+### AWS Lambda Backend API
+
+This project includes a serverless backend API built with **AWS Lambda** and exposed through **Amazon API Gateway HTTP API**. Terraform configuration for the backend is located in `serverless/terraform/`.
+
+| Setting | Value |
+|---|---|
+| AWS Region | `ap-south-1` (Mumbai) |
+| Lambda function | `react-admin-dashboard-api-vanshika` |
+| API Gateway base URL | `https://ulja4yitxk.execute-api.ap-south-1.amazonaws.com/` |
+| Health endpoint | `GET /api/health` |
+| Dashboard endpoint | `GET /api/dashboard` |
+| Terraform directory | `serverless/terraform/` |
+
+#### API endpoints
+
+- **Health check:** https://ulja4yitxk.execute-api.ap-south-1.amazonaws.com/api/health
+  - Used by Jenkins to verify that the backend API is responding with the expected healthy status.
+- **Dashboard API:** https://ulja4yitxk.execute-api.ap-south-1.amazonaws.com/api/dashboard
+  - Provides the dashboard endpoint implemented by the Lambda function.
+
+#### Lambda deployment with Terraform
+
+The Jenkins pipeline manages the Lambda infrastructure using Terraform:
+
+1. Runs `terraform init`, `terraform fmt -check`, and `terraform validate`.
+2. Runs `terraform plan` to review the proposed infrastructure changes.
+3. Pauses for manual approval before deployment.
+4. Applies the approved Terraform plan.
+5. Reads the API base URL from Terraform outputs.
+6. Calls `/api/health` and checks the returned status.
+7. Continues to frontend deployment only when the health check passes.
+
+Terraform manages the Lambda function, its IAM execution role and logging permissions, CloudWatch log group, API Gateway HTTP API, Lambda integration, API routes, stage, and permission for API Gateway to invoke Lambda.
+
+**Security:** Store AWS credentials in Jenkins Credentials Manager. Do not commit AWS access keys, Terraform state files, or sensitive `.tfvars` files to Git.
+
+---
+
+
 This project extends the React Admin Dashboard with a DevOps workflow for infrastructure provisioning, continuous integration, and AWS deployment.
 
 ### Live AWS Deployment
@@ -227,27 +266,28 @@ This project extends the React Admin Dashboard with a DevOps workflow for infras
 
 ```text
 Developer
-    |
-    v
+   |
+   v
 GitHub Repository
-    |
-    v
-Jenkins Pipeline
-    |
-    +--> Checkout Source Code
-    +--> Install Dependencies
-    +--> Run ESLint
-    +--> Build React Application
-    +--> Verify AWS Credentials
-    |
-    v
-Amazon S3
-    |
-    v
-Amazon CloudFront
-    |
-    v
-Live React Dashboard over HTTPS
+   |
+   v
+Jenkins CI/CD Pipeline
+   |
+   +--> Validate and plan Terraform
+   +--> Manual deployment approval
+   +--> Deploy Lambda and test API health
+   +--> Install, lint, and build React
+   |
+   +-------------------------+
+   |                         |
+   v                         v
+AWS Lambda               Amazon S3
+   |                         |
+   v                         v
+Amazon API Gateway       Amazon CloudFront
+   |                         |
+   v                         v
+Backend API endpoints    Live React Dashboard (HTTPS)
 ```
 
 Terraform manages the AWS infrastructure separately from the frontend build pipeline.
@@ -257,13 +297,16 @@ Terraform manages the AWS infrastructure separately from the frontend build pipe
 The `Jenkinsfile` defines the following stages:
 
 1. **Checkout Code:** Retrieves the project source code from GitHub.
-2. **Check Tools:** Verifies the availability of Node.js, npm, Git, and AWS CLI.
-3. **Install Dependencies:** Installs dependencies using `npm ci`.
-4. **Lint:** Runs ESLint to check code quality.
-5. **Build React App:** Creates the production build in the `dist/` directory.
-6. **Verify AWS Credentials:** Confirms AWS authentication using Jenkins-managed credentials.
-7. **Deploy to S3:** Uploads the production build to the configured S3 bucket.
-8. **Invalidate CloudFront Cache:** Requests an invalidation so updated website content can be served.
+2. **Check Tools:** Verifies Node.js, npm, Git, AWS CLI, and Terraform.
+3. **Validate Lambda Terraform:** Initializes and validates the Terraform configuration.
+4. **Plan Lambda Deployment:** Generates a Terraform plan for review.
+5. **Approve Lambda Deployment:** Pauses for manual approval.
+6. **Deploy Lambda and Check API:** Applies the Terraform plan and verifies the `/api/health` endpoint.
+7. **Install Frontend Dependencies:** Installs dependencies using `npm ci`.
+8. **Lint React:** Runs ESLint to check code quality.
+9. **Build React:** Creates the production build in `dist/`.
+10. **Deploy React to S3:** Uploads the production build to the configured S3 bucket.
+11. **Invalidate CloudFront:** Requests an invalidation so updated website content can be served.
 
 The deployment stages require valid credentials, appropriate IAM permissions, and an enabled CloudFront distribution.
 
