@@ -65,14 +65,7 @@ pipeline {
             }
         }
 
-        stage('Approve Lambda Deployment') {
-            steps {
-                input(
-                    message: 'Review the Lambda Terraform plan before deploying. Continue?',
-                    ok: 'Approve Deployment'
-                )
-            }
-        }
+       
 
         stage('Deploy Lambda and Check API') {
             steps {
