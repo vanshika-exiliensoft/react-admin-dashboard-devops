@@ -89,11 +89,18 @@ pipeline {
                                 returnStdout: true
                             ).trim()
 
-                            env.DEPLOYED_API_URL = apiUrl.replaceAll('/+$', '')
+                            env.DEPLOYED_API_URL =
+                                apiUrl.replaceAll('/+$', '')
+
+                            if (!env.DEPLOYED_API_URL.startsWith('https://')) {
+                                error('Terraform returned an invalid API URL.')
+                            }
+
+                            echo "API URL: ${env.DEPLOYED_API_URL}"
                         }
 
                         bat '''
-                            powershell -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference = 'Stop'; $healthUrl = $env:DEPLOYED_API_URL + '/api/health'; $response = Invoke-RestMethod -Uri $healthUrl -TimeoutSec 30; if ($response.status -ne 'healthy') { throw 'Lambda health check failed' }; Write-Host 'Lambda health check passed'"
+                            powershell -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop'; $baseUrl=$env:DEPLOYED_API_URL; if ([string]::IsNullOrWhiteSpace($baseUrl)) { throw 'DEPLOYED_API_URL is empty' }; $healthUrl=$baseUrl.TrimEnd('/') + '/api/health'; Write-Host ('Checking URL: ' + $healthUrl); $response=Invoke-RestMethod -Uri $healthUrl -TimeoutSec 30; if ($response.status -ne 'healthy') { throw ('Lambda health check failed. Response: ' + ($response | ConvertTo-Json -Compress)) }; Write-Host 'Lambda health check passed'"
                         '''
                     }
                 }
