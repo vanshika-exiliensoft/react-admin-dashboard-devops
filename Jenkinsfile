@@ -83,21 +83,27 @@ pipeline {
                     dir('serverless/terraform') {
                         bat 'terraform apply -auto-approve tfplan'
 
-                        script {
-                            def apiUrl = bat(
-                                script: 'terraform output -raw api_url',
-                                returnStdout: true
-                            ).trim()
+                        
+script {
+    def apiUrl = bat(
+        script: '@echo off\r\nterraform output -raw api_url',
+        returnStdout: true
+    ).trim()
 
-                            env.DEPLOYED_API_URL =
-                                apiUrl.replaceAll('/+$', '')
+    // Keep only the actual HTTPS URL if command output contains extra lines.
+    def urls = apiUrl.readLines()
+        .collect { it.trim() }
+        .findAll { it.startsWith('https://') }
 
-                            if (!env.DEPLOYED_API_URL.startsWith('https://')) {
-                                error('Terraform returned an invalid API URL.')
-                            }
+    if (urls.isEmpty()) {
+        error("Could not read the API URL from Terraform output: ${apiUrl}")
+    }
 
-                            echo "API URL: ${env.DEPLOYED_API_URL}"
-                        }
+    env.DEPLOYED_API_URL = urls.last().replaceAll('/+$', '')
+
+    echo "API URL: ${env.DEPLOYED_API_URL}"
+}
+
 
                         bat '''
                             powershell -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop'; $baseUrl=$env:DEPLOYED_API_URL; if ([string]::IsNullOrWhiteSpace($baseUrl)) { throw 'DEPLOYED_API_URL is empty' }; $healthUrl=$baseUrl.TrimEnd('/') + '/api/health'; Write-Host ('Checking URL: ' + $healthUrl); $response=Invoke-RestMethod -Uri $healthUrl -TimeoutSec 30; if ($response.status -ne 'healthy') { throw ('Lambda health check failed. Response: ' + ($response | ConvertTo-Json -Compress)) }; Write-Host 'Lambda health check passed'"
